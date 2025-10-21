@@ -1,0 +1,19 @@
+{
+  "name": "claude-code-demo-monorepo",
+  "version": "1.0.0",
+  "description": "Claude Codeの機能を試すためのモノレポ環境",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=packages/frontend",
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "build:all": "npm run build --workspaces",
+    "test:all": "npm run test --workspaces",
+    "lint:all": "npm run lint --workspaces"
+  },
+  "keywords": ["monorepo", "demo", "claude-code"],
+  "author": "Claude Code",
+  "license": "MIT"
+}
