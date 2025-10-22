@@ -5,152 +5,430 @@
 ## プロジェクト概要
 
 ### 目的
-Togglを生活の中心として使用するユーザーのために、TogglエントリをNotionのデイリーノートに自動同期し、Togglを柔軟に操作できるツール群を提供する。
+TogglエントリをNotionのデイリーノートに自動同期し、Togglを柔軟に操作できる再利用可能なツール群を提供する。
 
 ### コアコンセプト
-- **Toggl中心**: すべての時間追跡はTogglで行う
-- **Notion連携**: デイリーノートに自動反映
-- **再利用可能**: Toggl操作のアセットを汎用的に設計
-- **型安全**: TypeScriptで型安全な実装
-- **拡張性**: 新しい機能を簡単に追加できる設計
+- **関数型ドメイン駆動設計**: Effect-TSを活用した型安全で副作用を明示的に扱う設計
+- **ポートアンドアダプター**: ドメインロジックを外部システムから独立させる
+- **依存関係の制御**: 依存性逆転の原則を厳格に適用
+- **型安全**: TypeScriptとEffect-TSで完全な型安全性
+- **再利用可能**: モジュラーで拡張性の高いアセット設計
 
 ## アーキテクチャ原則
 
-### パッケージ構成
+### ポートアンドアダプターアーキテクチャ（ヘキサゴナルアーキテクチャ）
+
+各パッケージは以下の層構造を持つ：
+
 ```
-packages/
-├── toggl-client/       # Toggl APIラッパー（型安全、再利用可能）
-├── notion-client/      # Notion APIラッパー（型安全、再利用可能）
-├── toggl-notion-sync/  # 同期ロジック（toggl-client, notion-clientを使用）
-├── toggl-cli/          # Toggl操作用CLIツール（toggl-clientを使用）
-├── shared/             # 共通ユーティリティと型定義
-├── frontend/           # Webダッシュボード（将来的に）
-└── backend/            # API・Webhook受信サーバー（将来的に）
+src/
+├── domain/           # ドメイン層（ビジネスロジック、エンティティ）
+│   ├── models/       # ドメインモデル（純粋な型定義）
+│   ├── services/     # ドメインサービス（ビジネスロジック）
+│   └── errors/       # ドメインエラー
+├── application/      # アプリケーション層（ユースケース）
+│   ├── usecases/     # ユースケース実装
+│   └── ports/        # ポート（インターフェース定義）
+├── infrastructure/   # インフラ層（外部システム適合）
+│   ├── adapters/     # アダプター（ポートの実装）
+│   └── http/         # HTTP通信
+└── index.ts          # エクスポート
 ```
 
-### 依存関係のルール
+### 依存関係の方向（厳守）
+
+```
+infrastructure → application → domain
+       ↓              ↓
+    adapters       ports
+```
+
+**絶対ルール:**
+1. **Domain層**: 他の層に依存しない（純粋なビジネスロジック）
+2. **Application層**: Domainのみに依存（Infrastructureに依存しない）
+3. **Infrastructure層**: ApplicationとDomainに依存可能
+4. **依存性逆転**: ApplicationはPort（インターフェース）を定義し、InfrastructureがAdapterで実装
+
+### パッケージ構成
+
+```
+packages/
+├── toggl-client/       # Toggl操作ライブラリ
+│   ├── domain/         # Togglのドメインモデル（TimeEntry, Project, Tag等）
+│   ├── application/    # ユースケースとポート定義
+│   └── infrastructure/ # Toggl API アダプター
+│
+├── notion-client/      # Notion操作ライブラリ
+│   ├── domain/         # Notionのドメインモデル（Page, Block, Database等）
+│   ├── application/    # ユースケースとポート定義
+│   └── infrastructure/ # Notion API アダプター
+│
+├── toggl-notion-sync/  # 同期アプリケーション
+│   ├── domain/         # 同期のドメインロジック
+│   ├── application/    # 同期ユースケース
+│   └── infrastructure/ # toggl-client/notion-client統合
+│
+├── toggl-cli/          # CLIツール（TypeScript版）
+│   └── commands/       # CLIコマンド実装
+│
+├── shared/             # 共通ユーティリティ
+│   ├── config/         # 設定管理（Effect Config）
+│   ├── logger/         # ロギング（Effect Logger）
+│   └── types/          # 共通型定義
+│
+├── frontend/           # Webダッシュボード（将来）
+└── backend/            # API・Webhookサーバー（将来）
+```
+
+### パッケージ間の依存関係ルール
 1. **クライアントパッケージは独立**: `toggl-client`と`notion-client`は相互依存しない
 2. **shared依存は許可**: すべてのパッケージは`shared`に依存できる
-3. **上位層のみ統合**: 同期ロジックは`toggl-notion-sync`で実装
-4. **循環依存の禁止**: パッケージ間の循環依存は絶対に作らない
+3. **上位層のみ統合**: `toggl-notion-sync`が両クライアントを統合
+4. **循環依存の絶対禁止**: パッケージ間・モジュール間の循環依存は許可しない
+
+## Effect-TS 使用ガイドライン
+
+### 基本原則
+1. **副作用を明示的に**: すべての副作用は`Effect`型で表現
+2. **エラーを型で表現**: エラーチャネルを活用（`Effect<Success, Error, Requirements>`）
+3. **依存注入はLayer**: サービスの依存注入は`Layer`と`Context`を使用
+4. **合成を重視**: 小さなEffectを組み合わせて大きな処理を構築
+
+### Effect-TSによるDI（依存注入）
+
+#### サービス定義（Application層 - Port）
+
+```typescript
+// application/ports/TimeEntryRepository.ts
+import { Effect, Context } from "effect";
+import type { TimeEntry } from "../../domain/models/TimeEntry";
+import type { DateRange } from "../../domain/models/DateRange";
+
+export class TimeEntryRepository extends Context.Tag("TimeEntryRepository")<
+  TimeEntryRepository,
+  {
+    readonly findByDateRange: (
+      range: DateRange
+    ) => Effect.Effect<readonly TimeEntry[], RepositoryError>;
+    readonly create: (
+      entry: Omit<TimeEntry, "id">
+    ) => Effect.Effect<TimeEntry, RepositoryError>;
+  }
+>() {}
+
+export class RepositoryError extends Data.TaggedError("RepositoryError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+```
+
+#### アダプター実装（Infrastructure層）
+
+```typescript
+// infrastructure/adapters/TogglTimeEntryRepository.ts
+import { Effect, Layer } from "effect";
+import { TimeEntryRepository } from "../../application/ports/TimeEntryRepository";
+import { HttpClient } from "../http/HttpClient";
+
+export const TogglTimeEntryRepositoryLive = Layer.effect(
+  TimeEntryRepository,
+  Effect.gen(function* (_) {
+    const httpClient = yield* _(HttpClient);
+
+    return TimeEntryRepository.of({
+      findByDateRange: (range) =>
+        Effect.gen(function* (_) {
+          const response = yield* _(
+            httpClient.get(`/time_entries`, {
+              params: {
+                start_date: range.start,
+                end_date: range.end,
+              },
+            })
+          );
+          return yield* _(parseTimeEntries(response));
+        }),
+
+      create: (entry) =>
+        Effect.gen(function* (_) {
+          const response = yield* _(
+            httpClient.post(`/time_entries`, { body: entry })
+          );
+          return yield* _(parseTimeEntry(response));
+        }),
+    });
+  })
+);
+```
+
+#### ユースケース実装（Application層）
+
+```typescript
+// application/usecases/GetTodayTimeEntries.ts
+import { Effect } from "effect";
+import { TimeEntryRepository } from "../ports/TimeEntryRepository";
+import type { TimeEntry } from "../../domain/models/TimeEntry";
+import { createDateRange } from "../../domain/models/DateRange";
+
+export const getTodayTimeEntries = Effect.gen(function* (_) {
+  const repository = yield* _(TimeEntryRepository);
+  const today = yield* _(Effect.sync(() => createDateRange.today()));
+  const entries = yield* _(repository.findByDateRange(today));
+  return entries;
+});
+```
+
+#### Layer構成とアプリケーション実行
+
+```typescript
+// index.ts
+import { Effect, Layer } from "effect";
+import { getTodayTimeEntries } from "./application/usecases/GetTodayTimeEntries";
+import { TogglTimeEntryRepositoryLive } from "./infrastructure/adapters/TogglTimeEntryRepository";
+import { HttpClientLive } from "./infrastructure/http/HttpClient";
+
+// すべての依存関係を組み立て
+const AppLayer = TogglTimeEntryRepositoryLive.pipe(
+  Layer.provide(HttpClientLive)
+);
+
+// アプリケーション実行
+const program = getTodayTimeEntries.pipe(
+  Effect.provide(AppLayer)
+);
+
+// 実行
+Effect.runPromise(program).then(console.log).catch(console.error);
+```
+
+### エラーハンドリング（Effect-TS）
+
+```typescript
+import { Data, Effect } from "effect";
+
+// ドメインエラー定義
+export class TimeEntryNotFoundError extends Data.TaggedError("TimeEntryNotFoundError")<{
+  readonly id: string;
+}> {}
+
+export class InvalidTimeRangeError extends Data.TaggedError("InvalidTimeRangeError")<{
+  readonly reason: string;
+}> {}
+
+// インフラエラー定義
+export class HttpError extends Data.TaggedError("HttpError")<{
+  readonly statusCode: number;
+  readonly message: string;
+}> {}
+
+export class NetworkError extends Data.TaggedError("NetworkError")<{
+  readonly cause: unknown;
+}> {}
+
+// エラーハンドリング例
+const safeGetTimeEntry = (id: string) =>
+  getTimeEntry(id).pipe(
+    Effect.catchTag("TimeEntryNotFoundError", (error) =>
+      Effect.succeed(null) // エラーを処理して成功値に変換
+    ),
+    Effect.catchTag("HttpError", (error) =>
+      Effect.fail(new NetworkError({ cause: error })) // エラーを別のエラーに変換
+    )
+  );
+```
 
 ## コーディング規約
 
 ### TypeScript
 - **strictモード必須**: すべてのパッケージで`strict: true`
-- **明示的な型定義**: 関数の戻り値、パラメータは明示的に型を指定
-- **any禁止**: `any`の使用は原則禁止、`unknown`を使用
-- **型ガード**: 外部API応答には型ガードを実装
+- **Effect優先**: 副作用を伴う処理は必ず`Effect`で表現
+- **any/unknown禁止**: `any`と`unknown`の使用禁止、代わりに適切な型を定義
+- **明示的な型注釈**: 関数の戻り値型は必ず明示
 - **JSDoc**: 公開APIには必ずJSDocコメントを付ける
+- **immutability**: すべてのデータ構造はimmutable（`readonly`を活用）
+
+### 関数型プログラミング原則
+
+1. **Pure Functions**: 副作用のない純粋関数を優先
+2. **Immutability**: データは不変、変更ではなく新しい値を生成
+3. **Composition**: 小さな関数を組み合わせて大きな機能を構築
+4. **Expression-oriented**: 文ではなく式を優先
+5. **Pattern Matching**: `Match`を活用した分岐処理
 
 ```typescript
-/**
- * Togglのタイムエントリを取得
- * @param startDate - 開始日（ISO 8601形式）
- * @param endDate - 終了日（ISO 8601形式）
- * @returns タイムエントリの配列
- */
-export async function getTimeEntries(
-  startDate: string,
-  endDate: string
-): Promise<TimeEntry[]> {
-  // ...
-}
+import { Match } from "effect";
+
+const handleResult = Match.type<Result>().pipe(
+  Match.tag("Success", (success) => console.log(success.value)),
+  Match.tag("Failure", (failure) => console.error(failure.error)),
+  Match.exhaustive
+);
 ```
 
-### エラーハンドリング
-- **カスタムエラークラス**: APIエラー用のカスタムエラーを定義
-- **エラーの伝播**: エラーは適切にラップして上位に伝える
-- **ログ**: エラー発生時は必ずログを出力
+### ドメインモデル設計
 
 ```typescript
-export class TogglApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode?: number,
-    public response?: unknown
-  ) {
-    super(message);
-    this.name = 'TogglApiError';
+// domain/models/TimeEntry.ts
+import { Data } from "effect";
+
+// Dataを使用したimmutableなドメインモデル
+export class TimeEntry extends Data.Class<{
+  readonly id: string;
+  readonly description: string;
+  readonly start: Date;
+  readonly stop: Date | null;
+  readonly duration: number;
+  readonly projectId: string | null;
+  readonly tags: ReadonlyArray<string>;
+}> {
+  // ドメインロジック（純粋関数）
+  get isRunning(): boolean {
+    return this.stop === null;
+  }
+
+  get durationInMinutes(): number {
+    return Math.floor(this.duration / 60);
+  }
+
+  // ファクトリメソッド
+  static create(params: {
+    description: string;
+    start: Date;
+    projectId?: string;
+    tags?: ReadonlyArray<string>;
+  }): TimeEntry {
+    return new TimeEntry({
+      id: crypto.randomUUID(),
+      description: params.description,
+      start: params.start,
+      stop: null,
+      duration: 0,
+      projectId: params.projectId ?? null,
+      tags: params.tags ?? [],
+    });
+  }
+
+  // ドメイン操作
+  stop(at: Date): TimeEntry {
+    const duration = (at.getTime() - this.start.getTime()) / 1000;
+    return new TimeEntry({ ...this, stop: at, duration });
   }
 }
 ```
 
-### API設計
-
-#### Toggl Client
-- **認証**: API Tokenベースの認証
-- **レート制限**: レート制限を考慮した実装（リトライロジック）
-- **型定義**: Toggl APIのレスポンスを完全に型定義
-- **モジュール分割**: エンティティごとにモジュール分割（entries, projects, tags, etc.）
-
-#### Notion Client
-- **認証**: Integration Tokenベースの認証
-- **ページ操作**: デイリーノートの作成・更新に特化
-- **ブロック構築**: ブロックビルダーパターンを使用
-- **型定義**: Notionの複雑なブロック構造を型安全に
-
-### 環境変数管理
-- **必須変数の検証**: 起動時に必須環境変数をチェック
-- **.env.example**: すべての環境変数を記載
-- **型安全**: 環境変数アクセスは型安全なヘルパー経由
+### 環境変数管理（Effect Config）
 
 ```typescript
-// shared/src/config.ts
-export const config = {
-  toggl: {
-    apiToken: requireEnv('TOGGL_API_TOKEN'),
-    workspaceId: requireEnv('TOGGL_WORKSPACE_ID'),
-  },
-  notion: {
-    apiToken: requireEnv('NOTION_API_TOKEN'),
-    databaseId: requireEnv('NOTION_DAILY_NOTES_DATABASE_ID'),
-  },
-};
+// shared/src/config/index.ts
+import { Config, Effect } from "effect";
 
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Required environment variable ${key} is not set`);
-  }
-  return value;
-}
+export class AppConfig extends Data.Class<{
+  readonly toggl: {
+    readonly apiToken: string;
+    readonly workspaceId: string;
+  };
+  readonly notion: {
+    readonly apiToken: string;
+    readonly databaseId: string;
+  };
+}> {}
+
+export const loadConfig = Effect.gen(function* (_) {
+  const togglApiToken = yield* _(Config.string("TOGGL_API_TOKEN"));
+  const togglWorkspaceId = yield* _(Config.string("TOGGL_WORKSPACE_ID"));
+  const notionApiToken = yield* _(Config.string("NOTION_API_TOKEN"));
+  const notionDatabaseId = yield* _(Config.string("NOTION_DAILY_NOTES_DATABASE_ID"));
+
+  return new AppConfig({
+    toggl: {
+      apiToken: togglApiToken,
+      workspaceId: togglWorkspaceId,
+    },
+    notion: {
+      apiToken: notionApiToken,
+      databaseId: notionDatabaseId,
+    },
+  });
+});
 ```
 
 ## テスト方針
 
 ### 単体テスト
-- **カバレッジ目標**: 80%以上
-- **モック**: 外部APIはモック化
-- **テストツール**: Vitest
+- **カバレッジ目標**: 80%以上（特にドメイン層は100%）
+- **テストツール**: Vitest + `@effect/vitest`
+- **テスト構造**: ドメイン層は純粋関数なのでモック不要
+- **Effect テスト**: `Effect.gen`を使ったテストケース
+
+```typescript
+import { Effect } from "effect";
+import { expect, it } from "vitest";
+
+it("should create a time entry", () => {
+  const entry = TimeEntry.create({
+    description: "Test task",
+    start: new Date(),
+  });
+
+  expect(entry.isRunning).toBe(true);
+  expect(entry.description).toBe("Test task");
+});
+
+it("should stop a time entry", async () => {
+  const program = Effect.gen(function* (_) {
+    const entry = TimeEntry.create({
+      description: "Test",
+      start: new Date(),
+    });
+    const stopped = entry.stop(new Date());
+    return stopped.isRunning;
+  });
+
+  const result = await Effect.runPromise(program);
+  expect(result).toBe(false);
+});
+```
 
 ### 統合テスト
-- **環境**: テスト用のToggl/Notionワークスペースを使用
+- **Layer の差し替え**: テスト用Layerを用意してモック化
+- **テスト環境**: テスト用のToggl/Notionワークスペース
 - **クリーンアップ**: テスト後は必ずデータをクリーンアップ
+
+## リンター設定（ESLint）
+
+後続タスクで以下を設定予定：
+- `@typescript-eslint/strict-type-checked`
+- `functional/recommended` (eslint-plugin-functional)
+- `effect/recommended` (効果的なEffect-TS使用のため)
+- `no-any`, `no-explicit-any` 強制
+- `prefer-readonly` 強制
+- Import順序の強制
 
 ## ドキュメント要件
 
 ### README.md（各パッケージ）
-1. パッケージの目的
-2. インストール方法
-3. 使用例
-4. API仕様（公開関数）
-5. 設定方法
+1. パッケージの目的とユースケース
+2. アーキテクチャ概要（層構造）
+3. インストール方法
+4. 使用例（Effect-TSベース）
+5. API仕様（Layerの構成方法含む）
+6. 設定方法
 
 ### コード内コメント
 - 複雑なロジックには説明コメント
-- なぜその実装なのかを記述（Whatではなく、Why）
+- **Why** を記述（What ではなく）
+- ドメインの業務ルールは明確にコメント
 
 ## セキュリティ
 
 ### APIキー管理
-- **環境変数のみ**: APIキーは環境変数からのみ取得
-- **コミット禁止**: `.env`ファイルはgitignore
-- **ログ禁止**: APIキーをログに出力しない
+- **Effect Config**: 環境変数は`Config`経由でのみ取得
+- **コミット禁止**: `.env`ファイルは`.gitignore`
+- **ログ禁止**: APIキーをログに出力しない（Effect Loggerで自動マスキング）
 
 ### データ保護
 - **最小権限**: Notion/TogglのIntegrationは必要最小限の権限
-- **個人情報**: タイムエントリの説明文など、個人情報を含む可能性のあるデータの扱いに注意
+- **個人情報**: タイムエントリの説明文など個人情報の扱いに注意
 
 ## Git運用
 
@@ -179,6 +457,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - `sync`
 - `cli`
 - `shared`
+- `domain`, `application`, `infrastructure`（層を明示）
 
 ### ブランチ戦略
 - `main`: 安定版
@@ -188,22 +467,25 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## 優先事項
 
-### フェーズ1: 基礎構築
+### フェーズ1: 基礎構築とアーキテクチャ確立
 1. ✅ モノレポ環境構築
-2. 🔄 `toggl-client` パッケージ作成
-3. 🔄 `notion-client` パッケージ作成
-4. 共通型定義（`shared`に追加）
+2. ✅ AGENT.md策定
+3. 🔄 ESLint厳格設定
+4. 🔄 `toggl-client` パッケージ作成（ポートアンドアダプター構造）
+5. 🔄 `notion-client` パッケージ作成（ポートアンドアダプター構造）
+6. 共通型定義とEffect Layerの整備（`shared`）
 
 ### フェーズ2: 同期機能
-1. デイリーノートフォーマット設計
-2. 同期ロジック実装（`toggl-notion-sync`）
-3. スケジュール実行機能
-4. エラーハンドリングと再試行
+1. デイリーノートフォーマット設計（ドメインモデル）
+2. 同期ユースケース実装（`toggl-notion-sync`）
+3. スケジュール実行機能（Effect Schedule）
+4. エラーハンドリングと再試行（Effect Retry）
 
 ### フェーズ3: CLIツール
-1. Toggl操作コマンド（start, stop, list, etc.）
-2. 設定管理
-3. インタラクティブモード
+1. CLIフレームワーク選定（Effect CLI or @effect/cli）
+2. Toggl操作コマンド（start, stop, list, etc.）
+3. 設定管理（Effect Config）
+4. インタラクティブモード
 
 ### フェーズ4: 拡張機能
 1. Webダッシュボード
@@ -214,38 +496,55 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ## Claude Codeへの指示
 
 ### 実装時の注意
-1. **段階的実装**: 一度に大きな機能を作らず、小さく分割して実装
-2. **テスト優先**: 新しい機能には必ずテストを追加
-3. **ドキュメント同期**: コード変更時はドキュメントも更新
-4. **型安全第一**: 型エラーは絶対に放置しない
-5. **エラーハンドリング**: すべての外部API呼び出しはエラーハンドリング
+1. **Effect-TS優先**: すべての副作用は`Effect`で表現
+2. **依存関係の方向**: Domain ← Application ← Infrastructure を厳守
+3. **ポート定義**: Applicationでインターフェース、Infrastructureで実装
+4. **Layer構成**: DIは必ずEffect Layerで実現
+5. **段階的実装**: 小さく分割して実装
+6. **テスト優先**: ドメイン層は必ずテスト
+7. **ドキュメント同期**: コード変更時はドキュメントも更新
+8. **型安全第一**: 型エラーは絶対に放置しない
+9. **関数型思考**: 純粋関数とimmutabilityを優先
 
 ### 質問すべき状況
-- API設計に複数の選択肢がある場合
-- ユーザーの使用パターンに関わる実装判断
-- セキュリティに関わる実装
+- ドメインモデルの設計判断
+- ポート（インターフェース）の粒度
+- Layer構成の最適化
+- ユースケースの境界
 - デイリーノートのフォーマット
 
 ### 避けるべきこと
-- APIキーのハードコード
-- `any`型の使用
-- テストなしの実装
-- ドキュメントなしの公開API
-- 循環依存の作成
+- **依存関係の逆転**: InfrastructureがApplicationに依存するのはOK、逆はNG
+- **ドメイン層の汚染**: ドメイン層に外部ライブラリ依存を持ち込まない
+- **any/unknown使用**: 型を適切に定義
+- **副作用の隠蔽**: `Effect`を使わずに副作用を実行
+- **Mutableな状態**: `readonly`を使用して不変性を保証
+- **循環依存**: パッケージ・モジュール間の循環依存
+- **テストなし実装**: 特にドメイン層
 
 ## 参考リソース
 
-### API仕様
+### 技術仕様
+- Effect-TS: https://effect.website/
 - Toggl Track API: https://developers.track.toggl.com/docs/
 - Notion API: https://developers.notion.com/
 
-### ライブラリ候補
-- HTTP Client: `axios` or `node-fetch`
-- 日付処理: `date-fns`
-- バリデーション: `zod`
-- CLI: `commander` or `yargs`（Python CLI は `click`）
+### ライブラリ
+- **Effect-TS**: `effect` (コア)
+- **HTTP Client**: `@effect/platform` (HttpClient)
+- **スキーマ**: `@effect/schema` (バリデーション・パース)
+- **日付処理**: `effect` (Duration, DateTime) または `@effect/data`
+- **CLI**: `@effect/cli`
+- **設定**: `effect` (Config)
+- **ログ**: `effect` (Logger)
+
+### アーキテクチャパターン
+- ポートアンドアダプター（ヘキサゴナルアーキテクチャ）
+- ドメイン駆動設計（DDD）
+- 関数型プログラミング
+- CQRS（将来的に）
 
 ---
 
 **最終更新**: 2025-10-22
-**バージョン**: 1.0.0
+**バージョン**: 2.0.0
