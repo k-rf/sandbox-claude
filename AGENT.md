@@ -465,15 +465,92 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - `feature/*`: 新機能開発
 - `fix/*`: バグ修正
 
+## コード品質管理
+
+### 静的解析の実行タイミング
+
+**コード変更時は必ず静的解析を実行する:**
+
+1. **ファイル編集後**: 変更したファイルに対してlintとフォーマットを実行
+   ```bash
+   npm run lint:fix      # ESLintによる自動修正
+   npm run format        # Oxfmtによる自動フォーマット
+   ```
+
+2. **ロジック追加時**: テストを実行して既存機能が壊れていないことを確認
+   ```bash
+   npm run test:all      # 全パッケージのテスト実行
+   ```
+
+3. **コミット前**: Lefthook Git hooksが自動実行（手動実行も推奨）
+   ```bash
+   npm run check         # lint + format check の一括実行
+   ```
+
+### Git Hooks（Lefthook）による自動品質チェック
+
+プロジェクトにはLefthookによる自動品質チェックが設定されている：
+
+**Pre-commit（コミット前）**:
+- ✅ Oxlint: 超高速基本チェック（ステージされたファイルのみ）
+- ✅ ESLint: 厳格な型チェック + 自動修正（ステージされたファイルのみ）
+- ✅ Oxfmt: 自動フォーマット（ステージされたファイルのみ）
+
+**Pre-push（プッシュ前）**:
+- ✅ Lint all: 全ファイルの完全なリントチェック
+- ✅ Format check: 全ファイルのフォーマットチェック
+- ✅ Test all: 全パッケージのテスト実行
+
+**Commit-msg（コミットメッセージ検証）**:
+- ✅ Conventional Commits形式の強制
+
+### Claude Codeの実装ルール
+
+**コード変更を行う際は以下の順序で作業する:**
+
+1. **コード実装**: 機能追加・修正を行う
+2. **静的解析**: `npm run lint:fix` でlintエラーを修正
+3. **フォーマット**: `npm run format` でコードを整形
+4. **テスト実行**: `npm run test:all` で全テストが通ることを確認
+5. **コミット**: Git hooksが自動的に品質チェックを実行
+6. **プッシュ**: 再度すべてのチェックが実行される
+
+**重要な注意事項:**
+- ⚠️ **Git hooksでエラーが出た場合**: コミット/プッシュは失敗する。必ずエラーを修正してから再試行
+- ⚠️ **警告は許容**: ESLintの警告（warning）は許可されているが、エラー（error）は許可されない
+- ⚠️ **フォーマットの統一**: 手動でフォーマットを変更せず、必ずOxfmtに任せる
+- ✅ **プッシュ前の最終確認**: `npm run check` を実行してすべての品質基準をクリアしていることを確認
+
+### Linter設定
+
+現在の設定（Oxlint + ESLint ハイブリッド構成）:
+
+**Oxlint（超高速基本チェック）**:
+- TypeScript、Correctness、Suspicious、Perf、Style、Nursery ルール有効
+- 50-100倍高速なベースライン品質チェック
+
+**ESLint（厳格な型チェック）**:
+- `@typescript-eslint/strict-type-checked`: 最も厳格な型チェック
+- `@effect/eslint-plugin`: Effect-TS専用ルール
+- `eslint-plugin-functional`: 関数型プログラミング強制
+- `eslint-plugin-import-x`: Import順序とモジュール管理
+- `eslint-plugin-sonarjs`: 複雑度チェック
+- `eslint-plugin-unicorn`: モダンなベストプラクティス
+- その他: Promise、JSDoc、Vitestルール
+
+**デモコードの特例**:
+現在のパッケージ（frontend/backend/shared）はデモコードのため、一部の厳格ルールを警告レベルに緩和。
+新規パッケージ（toggl-client/notion-client等）では厳格ルールを完全適用する。
+
 ## 優先事項
 
 ### フェーズ1: 基礎構築とアーキテクチャ確立
 1. ✅ モノレポ環境構築
 2. ✅ AGENT.md策定
-3. 🔄 ESLint厳格設定
+3. ✅ ESLint厳格設定（Oxlint + ESLint ハイブリッド構成 + Lefthook Git hooks）
 4. 🔄 `toggl-client` パッケージ作成（ポートアンドアダプター構造）
 5. 🔄 `notion-client` パッケージ作成（ポートアンドアダプター構造）
-6. 共通型定義とEffect Layerの整備（`shared`）
+6. 🔄 共通型定義とEffect Layerの整備（`shared`）
 
 ### フェーズ2: 同期機能
 1. デイリーノートフォーマット設計（ドメインモデル）
@@ -505,6 +582,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 7. **ドキュメント同期**: コード変更時はドキュメントも更新
 8. **型安全第一**: 型エラーは絶対に放置しない
 9. **関数型思考**: 純粋関数とimmutabilityを優先
+10. **静的解析の実行**: コード変更後は必ず `npm run lint:fix` → `npm run format` → `npm run test:all` を実行
 
 ### 質問すべき状況
 - ドメインモデルの設計判断
@@ -546,5 +624,5 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ---
 
-**最終更新**: 2025-10-22
-**バージョン**: 2.0.0
+**最終更新**: 2025-10-23
+**バージョン**: 2.1.0 - コード品質管理セクション追加（Lefthook Git hooks統合）
