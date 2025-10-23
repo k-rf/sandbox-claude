@@ -17,6 +17,12 @@
 - Import/Export管理
 - コード品質チェック
 
+### 🛡️ Lefthook（Git Hooks）
+
+- Pre-commit: ステージされたファイルの自動チェック＆修正
+- Pre-push: 全体の完全チェック（lint + format + test）
+- Commit-msg: Conventional Commits形式強制
+
 ---
 
 ## コマンド一覧
@@ -222,6 +228,65 @@ export function calculateTotal(items: Item[]): number {
 
 ---
 
+## Git Hooks（Lefthook）
+
+### 自動実行されるタイミング
+
+**Pre-commit（コミット前）:**
+1. Oxlint: 高速基本チェック
+2. ESLint: 厳格な型チェック + 自動修正
+3. Oxfmt: フォーマット自動修正
+
+ステージされたファイルのみがチェックされ、自動修正された内容は自動的に再ステージングされます。
+
+**Pre-push（プッシュ前）:**
+1. 全体のリントチェック
+2. 全体のフォーマットチェック
+3. 全テスト実行
+
+**Commit-msg（コミットメッセージ検証）:**
+- Conventional Commits形式を強制
+- 形式: `<type>(<scope>): <subject>`
+
+### Git Hooksのスキップ方法
+
+**緊急時のみ使用:**
+```bash
+# すべてのhooksをスキップ
+LEFTHOOK=0 git commit -m "emergency fix"
+
+# 特定のhookのみスキップ
+LEFTHOOK_EXCLUDE=lint-all git push
+```
+
+**⚠️ 注意**: 本番環境へのプッシュ時はhooksをスキップしないでください。
+
+### コミットメッセージ形式
+
+```bash
+# ✅ 正しい形式
+git commit -m "feat(toggl-client): Add TimeEntry domain model"
+git commit -m "fix(notion-client): Fix page creation error"
+git commit -m "docs: Update README"
+
+# ❌ 間違った形式（リジェクトされます）
+git commit -m "add new feature"
+git commit -m "fixed bug"
+git commit -m "WIP"
+```
+
+**Types:**
+- `feat`: 新機能
+- `fix`: バグ修正
+- `docs`: ドキュメント
+- `style`: フォーマット
+- `refactor`: リファクタリング
+- `perf`: パフォーマンス改善
+- `test`: テスト
+- `chore`: その他
+
+---
+
 ## トラブルシューティング
 
 ### ESLintエラーが多すぎる
@@ -232,6 +297,25 @@ export function calculateTotal(items: Item[]): number {
 1. `npm run lint:fix` で自動修正
 2. 残ったエラーは手動で修正
 3. どうしても対応できない場合は、一時的に該当ルールを無効化（要相談）
+
+### Git Hooksがコミットをブロックする
+
+コミット前に自動修正が実行されます。修正内容を確認してから再度コミットしてください。
+
+```bash
+# 1. コミット試行（エラーで止まる）
+git commit -m "feat: add feature"
+
+# 2. 自動修正された内容を確認
+git status
+git diff
+
+# 3. 修正内容をステージング
+git add .
+
+# 4. 再度コミット
+git commit -m "feat: add feature"
+```
 
 ### Oxlintとの競合
 

@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "lefthook install",
     "dev:frontend": "npm run dev --workspace=packages/frontend",
     "dev:backend": "npm run dev --workspace=packages/backend",
     "build:all": "npm run build --workspaces",
@@ -41,6 +42,7 @@
     "eslint-plugin-sonarjs": "^3.0.5",
     "eslint-plugin-unicorn": "^61.0.2",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "lefthook": "^2.0.0",
     "oxfmt": "^0.8.0",
     "oxlint": "^1.24.0",
     "vite-plugin-oxlint": "^1.4.0"

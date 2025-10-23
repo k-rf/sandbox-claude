@@ -1,0 +1,87 @@
+# Lefthook Git Hooks Configuration
+# https://github.com/evilmartians/lefthook
+# 超厳格な品質ゲート設定
+
+# ===========================================
+# Pre-commit: ステージされたファイルの検証
+# ===========================================
+pre-commit:
+  parallel: true
+  commands:
+    # 1. Oxlint: 超高速基本チェック
+    oxlint:
+      glob: "**/*.{ts,tsx,mts,cts}"
+      run: npx oxlint {staged_files}
+      stage_fixed: false
+
+    # 2. ESLint: 厳格な型チェック（自動修正）
+    eslint:
+      glob: "**/*.{ts,tsx,mts,cts}"
+      run: npx eslint {staged_files} --fix
+      stage_fixed: true
+
+    # 3. Oxfmt: フォーマット自動修正
+    format:
+      glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+      run: npx oxfmt {staged_files}
+      stage_fixed: true
+
+# ===========================================
+# Pre-push: プッシュ前の全体チェック
+# ===========================================
+pre-push:
+  parallel: false
+  commands:
+    # 1. 全体リント
+    lint-all:
+      run: npm run lint
+
+    # 2. 全体フォーマットチェック
+    format-check-all:
+      run: npm run format:check
+
+    # 3. 全テスト実行（マージ・リベース時はスキップ）
+    test-all:
+      run: npm run test:all
+      skip:
+        - merge
+        - rebase
+
+# ===========================================
+# Commit-msg: コミットメッセージ検証
+# ===========================================
+commit-msg:
+  commands:
+    # Conventional Commits形式強制
+    message-format:
+      run: |
+        PATTERN="^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?: .{1,100}"
+        if ! grep -iqE "$PATTERN" {1}; then
+          echo "❌ Invalid commit message format!"
+          echo ""
+          echo "Commit message must follow Conventional Commits:"
+          echo "  <type>(<scope>): <subject>"
+          echo ""
+          echo "Types:"
+          echo "  - feat:     新機能"
+          echo "  - fix:      バグ修正"
+          echo "  - docs:     ドキュメント"
+          echo "  - style:    フォーマット"
+          echo "  - refactor: リファクタリング"
+          echo "  - perf:     パフォーマンス改善"
+          echo "  - test:     テスト"
+          echo "  - chore:    その他"
+          echo ""
+          echo "Example: feat(toggl-client): Add TimeEntry domain model"
+          echo ""
+          exit 1
+        fi
+
+# ===========================================
+# グローバル設定
+# ===========================================
+colors: true
+no_tty: false
+
+# 緊急時のスキップ方法:
+# LEFTHOOK=0 git commit -m "emergency fix"
