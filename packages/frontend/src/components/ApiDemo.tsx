@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import './ApiDemo.css';
+import { useState } from "react";
+import "./ApiDemo.css";
 
 export default function ApiDemo() {
   const [data, setData] = useState<any>(null);
@@ -10,14 +10,14 @@ export default function ApiDemo() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/data');
+      const response = await fetch("/api/data");
       if (!response.ok) {
-        throw new Error('API request failed');
+        throw new Error("API request failed");
       }
       const result = await response.json();
       setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -29,14 +29,16 @@ export default function ApiDemo() {
 
       <div className="api-controls">
         <button onClick={fetchData} disabled={loading}>
-          {loading ? '読み込み中...' : 'データ取得'}
+          {loading ? "読み込み中..." : "データ取得"}
         </button>
       </div>
 
       {error && (
         <div className="error">
           <p>エラー: {error}</p>
-          <p className="hint">バックエンドサーバーが起動していることを確認してください。</p>
+          <p className="hint">
+            バックエンドサーバーが起動していることを確認してください。
+          </p>
         </div>
       )}
 
@@ -50,8 +52,12 @@ export default function ApiDemo() {
       <div className="api-info">
         <h3>API情報</h3>
         <ul>
-          <li>エンドポイント: <code>GET /api/data</code></li>
-          <li>バックエンド: <code>http://localhost:4000</code></li>
+          <li>
+            エンドポイント: <code>GET /api/data</code>
+          </li>
+          <li>
+            バックエンド: <code>http://localhost:4000</code>
+          </li>
           <li>プロキシ設定: Vite開発サーバー経由</li>
         </ul>
       </div>

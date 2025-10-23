@@ -1,23 +1,23 @@
 export interface User {
-  id: number;
-  name: string;
-  email: string;
+  readonly id: number;
+  readonly name: string;
+  readonly email: string;
 }
 
 export interface ApiResponse<T> {
-  data: T;
-  status: 'success' | 'error';
-  message?: string;
-  timestamp: string;
+  readonly data: T;
+  readonly status: "success" | "error";
+  readonly message?: string;
+  readonly timestamp: string;
 }
 
 export interface Stats {
-  totalUsers: number;
-  activeUsers: number;
-  lastUpdate: string;
+  readonly totalUsers: number;
+  readonly activeUsers: number;
+  readonly lastUpdate: string;
 }
 
-export type ValidationError = {
-  field: string;
-  message: string;
-};
+export interface ValidationError {
+  readonly field: string;
+  readonly message: string;
+}

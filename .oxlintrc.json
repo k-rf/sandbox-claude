@@ -1,11 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "rules": {
-    "typescript": "all",
-    "correctness": "all",
-    "suspicious": "all",
-    "perf": "all",
-    "style": "all",
+    "typescript": "error",
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error",
+    "style": "error",
     "nursery": "warn"
   },
   "plugins": ["import"],

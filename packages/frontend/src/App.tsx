@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Counter from './components/Counter';
-import TodoList from './components/TodoList';
-import ApiDemo from './components/ApiDemo';
-import './App.css';
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+
+import ApiDemo from "./components/ApiDemo";
+import Counter from "./components/Counter";
+import TodoList from "./components/TodoList";
+import "./App.css";
 
 function App() {
   return (

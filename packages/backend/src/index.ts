@@ -1,7 +1,8 @@
-import express from 'express';
-import cors from 'cors';
-import { dataRouter } from './routes/data.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import cors from "cors";
+import express from "express";
+
+import { errorHandler } from "./middleware/errorHandler.js";
+import { dataRouter } from "./routes/data.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -11,11 +12,11 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.use('/api/data', dataRouter);
+app.use("/api/data", dataRouter);
 
 // Error handling
 app.use(errorHandler);

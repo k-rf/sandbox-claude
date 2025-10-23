@@ -2,6 +2,7 @@
   "name": "claude-code-demo-monorepo",
   "version": "1.0.0",
   "description": "Claude Codeの機能を試すためのモノレポ環境",
+  "type": "module",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -45,6 +46,7 @@
     "lefthook": "^2.0.0",
     "oxfmt": "^0.8.0",
     "oxlint": "^1.24.0",
+    "typescript-eslint": "^8.46.2",
     "vite-plugin-oxlint": "^1.4.0"
   }
 }

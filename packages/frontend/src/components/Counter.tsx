@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import './Counter.css';
+import { useState } from "react";
+import "./Counter.css";
 
 export default function Counter() {
   const [count, setCount] = useState(0);
@@ -11,9 +11,27 @@ export default function Counter() {
         <p className="count">{count}</p>
       </div>
       <div className="counter-buttons">
-        <button onClick={() => setCount(count - 1)}>-</button>
-        <button onClick={() => setCount(0)}>リセット</button>
-        <button onClick={() => setCount(count + 1)}>+</button>
+        <button
+          onClick={() => {
+            setCount(count - 1);
+          }}
+        >
+          -
+        </button>
+        <button
+          onClick={() => {
+            setCount(0);
+          }}
+        >
+          リセット
+        </button>
+        <button
+          onClick={() => {
+            setCount(count + 1);
+          }}
+        >
+          +
+        </button>
       </div>
     </div>
   );

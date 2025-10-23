@@ -1,16 +1,16 @@
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from "express";
 
 export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
-  console.error('Error:', err);
+  console.error("Error:", err);
 
   res.status(500).json({
-    error: 'Internal Server Error',
+    error: "Internal Server Error",
     message: err.message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 }

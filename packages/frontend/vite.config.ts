@@ -1,14 +1,14 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import oxlint from 'vite-plugin-oxlint';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import oxlint from "vite-plugin-oxlint";
 
 export default defineConfig({
   plugins: [
     react(),
     oxlint({
-      path: 'src',
+      path: "src",
       // Oxlintを開発時にリアルタイム実行
-      includes: ['**/*.ts', '**/*.tsx'],
+      includes: ["**/*.ts", "**/*.tsx"],
       // エラーをブラウザに表示
       dev: {
         overlay: true,
@@ -18,8 +18,8 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': {
-        target: 'http://localhost:4000',
+      "/api": {
+        target: "http://localhost:4000",
         changeOrigin: true,
       },
     },
