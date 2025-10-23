@@ -11,9 +11,38 @@
     "dev:backend": "npm run dev --workspace=packages/backend",
     "build:all": "npm run build --workspaces",
     "test:all": "npm run test --workspaces",
-    "lint:all": "npm run lint --workspaces"
+    "lint:fast": "oxlint",
+    "lint:strict": "eslint .",
+    "lint": "npm run lint:fast && npm run lint:strict",
+    "lint:fix": "npm run lint:strict -- --fix",
+    "lint:all": "npm run lint --workspaces",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "npm run lint && npm run format:check"
   },
-  "keywords": ["monorepo", "demo", "claude-code"],
+  "keywords": [
+    "monorepo",
+    "demo",
+    "claude-code"
+  ],
   "author": "Claude Code",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@effect/eslint-plugin": "^0.3.2",
+    "@eslint/js": "^9.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "@vitest/eslint-plugin": "^1.3.23",
+    "eslint": "^9.38.0",
+    "eslint-plugin-functional": "^9.0.2",
+    "eslint-plugin-import-x": "^4.16.1",
+    "eslint-plugin-jsdoc": "^61.1.7",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-sonarjs": "^3.0.5",
+    "eslint-plugin-unicorn": "^61.0.2",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "oxfmt": "^0.8.0",
+    "oxlint": "^1.24.0",
+    "vite-plugin-oxlint": "^1.4.0"
+  }
 }

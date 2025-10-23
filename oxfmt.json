@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.rs/oxc/latest/oxc_formatter/struct.FormatterOptions.html",
+  "indentStyle": "space",
+  "indentWidth": 2,
+  "lineWidth": 100,
+  "useTabs": false,
+  "trailingComma": "all",
+  "semicolons": "always",
+  "quoteStyle": "single",
+  "jsxQuoteStyle": "double",
+  "quoteProps": "asNeeded",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "endOfLine": "lf"
+}

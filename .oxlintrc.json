@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "typescript": "all",
+    "correctness": "all",
+    "suspicious": "all",
+    "perf": "all",
+    "style": "all",
+    "nursery": "warn"
+  },
+  "plugins": ["import"],
+  "settings": {
+    "import": {
+      "resolver": {
+        "typescript": true
+      }
+    }
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "*.config.js",
+    "*.config.ts"
+  ]
+}
