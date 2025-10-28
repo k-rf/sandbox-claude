@@ -33,6 +33,6 @@ export * from "./domain/errors/DomainErrors";
 // Application ports
 export * from "./application/ports";
 
-// Infrastructure layer will be implemented in next commit
-// export * from './infrastructure/adapters';
-// export * from './infrastructure/http';
+// Infrastructure
+export * from "./infrastructure/adapters";
+export * from "./infrastructure/http";
