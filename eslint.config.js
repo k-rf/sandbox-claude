@@ -283,6 +283,10 @@ export default tseslint.config(
       // Relax other strict rules
       "unicorn/no-null": "warn",
       "unused-imports/no-unused-vars": "warn",
+
+      // Allow spread on Data.Class (Effect-TS pattern)
+      "@typescript-eslint/no-misused-spread": "off",
+      "@typescript-eslint/no-unnecessary-condition": "warn",
     },
   },
 
