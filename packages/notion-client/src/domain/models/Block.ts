@@ -244,13 +244,17 @@ export const BlockFactory = {
     const now = new Date();
     const type = `heading_${level}`;
 
+    const content: BlockContent =
+      type === "heading_1"
+        ? { type: "heading_1", heading_1: { rich_text: [richText] } }
+        : type === "heading_2"
+          ? { type: "heading_2", heading_2: { rich_text: [richText] } }
+          : { type: "heading_3", heading_3: { rich_text: [richText] } };
+
     return new Block({
       id: "",
       type,
-      content: {
-        type,
-        [type]: { rich_text: [richText] },
-      } as BlockContent,
+      content,
       createdTime: now,
       lastEditedTime: now,
       hasChildren: false,
