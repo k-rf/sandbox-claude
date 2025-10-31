@@ -26,7 +26,8 @@ const NotionBlockSchema = Schema.Struct({
   // We'll use Schema.Unknown to handle the dynamic structure
 });
 
-type NotionBlockResponse = Schema.Schema.Type<typeof NotionBlockSchema> & Record<string, unknown>;
+type NotionBlockResponse = Schema.Schema.Type<typeof NotionBlockSchema> &
+  Record<string, unknown>;
 
 /**
  * Parse Notion API response to Block domain model
