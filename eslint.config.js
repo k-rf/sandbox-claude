@@ -12,14 +12,16 @@ import jsdocPlugin from "eslint-plugin-jsdoc";
 import vitestPlugin from "@vitest/eslint-plugin";
 
 export default tseslint.config(
-  // ベース設定
+  // ============================================
+  // ベース設定（recommended使用）
+  // ============================================
   eslint.configs.recommended,
-
-  // TypeScript strict-type-checked（最も厳格）
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
 
+  // ============================================
   // グローバル設定
+  // ============================================
   {
     languageOptions: {
       parserOptions: {
@@ -29,7 +31,9 @@ export default tseslint.config(
     },
   },
 
+  // ============================================
   // メインルール設定
+  // ============================================
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
     plugins: {
@@ -45,22 +49,10 @@ export default tseslint.config(
     },
     rules: {
       // ========================================
-      // TypeScript厳格ルール
+      // TypeScript: strictTypeCheckedでカバーされないルールのみ追加
       // ========================================
       "@typescript-eslint/explicit-function-return-type": "error",
       "@typescript-eslint/explicit-module-boundary-types": "error",
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unsafe-assignment": "error",
-      "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-call": "error",
-      "@typescript-eslint/no-unsafe-return": "error",
-      "@typescript-eslint/strict-boolean-expressions": "error",
-      "@typescript-eslint/no-floating-promises": "error",
-      "@typescript-eslint/no-misused-promises": "error",
-      "@typescript-eslint/await-thenable": "error",
-      "@typescript-eslint/no-unnecessary-type-assertion": "error",
-      "@typescript-eslint/prefer-nullish-coalescing": "error",
-      "@typescript-eslint/prefer-optional-chain": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/consistent-type-imports": [
         "error",
@@ -90,40 +82,25 @@ export default tseslint.config(
       ],
 
       // ========================================
-      // 関数型プログラミング（厳格）
+      // 関数型プログラミング: recommended + 追加ルール
       // ========================================
-      "functional/no-let": "error",
-      "functional/no-loop-statements": "error",
+      ...functionalPlugin.configs.recommended.rules,
       "functional/no-throw-statements": "error",
-      "functional/prefer-immutable-types": [
-        "error",
-        {
-          enforcement: "ReadonlyDeep",
-          ignoreInferredTypes: false,
-        },
-      ],
       "functional/prefer-readonly-type": "error",
-      "functional/immutable-data": "error",
       "functional/no-mixed-types": "error",
+      // Effect-TSのData.Classパターンを許可
+      "functional/no-classes": "off",
+      "functional/no-class-inheritance": "off",
+      // ReadonlyDeepは厳格すぎるため無効化（prefer-readonly-typeで対応）
+      "functional/prefer-immutable-types": "off",
 
       // ========================================
-      // Import/Export管理
+      // Import管理: recommended + 循環依存検出 + 順序
       // ========================================
-      "import-x/no-unresolved": "error",
-      "import-x/named": "error",
-      "import-x/default": "error",
-      "import-x/namespace": "error",
-      "import-x/no-absolute-path": "error",
-      "import-x/no-self-import": "error",
+      ...importXPlugin.configs.recommended.rules,
+      // TypeScriptがimport解決を担当するため無効化
+      "import-x/no-unresolved": "off",
       "import-x/no-cycle": ["error", { maxDepth: Infinity }],
-      "import-x/no-useless-path-segments": "error",
-      "import-x/no-deprecated": "warn",
-      "import-x/no-mutable-exports": "error",
-      // "import-x/no-unused-modules" is disabled due to incompatibility with flat config
-      // See: https://github.com/import-js/eslint-plugin-import/issues/3079
-      // "import-x/no-unused-modules": ["error", { unusedExports: true }],
-      "import-x/first": "error",
-      "import-x/no-duplicates": "error",
       "import-x/order": [
         "error",
         {
@@ -161,8 +138,6 @@ export default tseslint.config(
           },
         },
       ],
-
-      // 未使用import削除
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "error",
@@ -175,96 +150,78 @@ export default tseslint.config(
       ],
 
       // ========================================
-      // コード品質（SonarJS）
+      // コード品質: SonarJS recommended使用
       // ========================================
-      "sonarjs/cognitive-complexity": ["error", 15],
-      "sonarjs/no-duplicate-string": ["error", { threshold: 3 }],
-      "sonarjs/no-identical-functions": "error",
-      "sonarjs/no-collapsible-if": "error",
-      "sonarjs/no-collection-size-mischeck": "error",
-      "sonarjs/no-duplicated-branches": "error",
-      "sonarjs/no-identical-conditions": "error",
-      "sonarjs/no-redundant-boolean": "error",
-      "sonarjs/no-unused-collection": "error",
-      "sonarjs/prefer-immediate-return": "error",
+      ...sonarjsPlugin.configs.recommended.rules,
 
       // ========================================
-      // Unicorn（モダンなベストプラクティス）
+      // Unicorn: recommended + Effect-TS向け追加
       // ========================================
-      "unicorn/better-regex": "error",
-      "unicorn/catch-error-name": "error",
-      "unicorn/consistent-function-scoping": "error",
-      "unicorn/error-message": "error",
-      "unicorn/no-array-for-each": "error",
-      "unicorn/no-for-loop": "error",
-      "unicorn/no-null": "error",
-      "unicorn/no-useless-undefined": "error",
-      "unicorn/prefer-array-some": "error",
-      "unicorn/prefer-default-parameters": "error",
-      "unicorn/prefer-includes": "error",
-      "unicorn/prefer-node-protocol": "error",
-      "unicorn/prefer-optional-catch-binding": "error",
-      "unicorn/prefer-string-starts-ends-with": "error",
+      ...unicornPlugin.configs.recommended.rules,
+      "unicorn/no-null": "error", // Effect-TSではOption使用
       "unicorn/prefer-ternary": "error",
-      "unicorn/throw-new-error": "error",
+      // デモコードで緩和されるルールも明示的に設定
+      "unicorn/filename-case": "off", // デモコードではPascalCase許可
+      "unicorn/prevent-abbreviations": "off", // req/res/err等の略語を許可
+      "unicorn/prefer-number-properties": "warn", // parseInt等を警告レベルに
+      "unicorn/prefer-query-selector": "warn", // getElementById等を警告レベルに
 
       // ========================================
-      // Promise
+      // Promise: recommended + async/await推奨
       // ========================================
-      "promise/always-return": "error",
-      "promise/no-return-wrap": "error",
-      "promise/param-names": "error",
-      "promise/catch-or-return": "error",
-      "promise/no-nesting": "warn",
-      "promise/no-promise-in-callback": "warn",
+      ...promisePlugin.configs.recommended.rules,
       "promise/prefer-await-to-then": "error",
       "promise/prefer-await-to-callbacks": "error",
+      "promise/no-nesting": "warn",
+      "promise/no-promise-in-callback": "warn",
 
       // ========================================
-      // JSDoc（必須）
+      // JSDoc: recommended-typescript + 説明必須
       // ========================================
-      "jsdoc/check-access": "error",
-      "jsdoc/check-alignment": "error",
-      "jsdoc/check-param-names": "error",
-      "jsdoc/check-property-names": "error",
-      "jsdoc/check-tag-names": "error",
-      "jsdoc/check-types": "error",
+      ...jsdocPlugin.configs["recommended-typescript"].rules,
       "jsdoc/require-description": "error",
-      "jsdoc/require-param": "error",
       "jsdoc/require-param-description": "error",
-      "jsdoc/require-param-type": "error",
-      "jsdoc/require-returns": "error",
       "jsdoc/require-returns-description": "error",
-      "jsdoc/require-returns-type": "error",
     },
   },
 
-  // Demo code: Relax strict rules temporarily
+  // ============================================
+  // デモコード用の緩和設定
+  // ============================================
   {
-    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+    files: [
+      "packages/frontend/**/*",
+      "packages/backend/**/*",
+      "packages/shared/**/*",
+    ],
     rules: {
-      // Disable import resolution (TypeScript handles this)
-      "import-x/no-unresolved": "off",
-
-      // Relax functional programming rules for demo code
+      // 関数型プログラミングルールを緩和
       "functional/prefer-immutable-types": "off",
       "functional/immutable-data": "warn",
       "functional/no-let": "warn",
       "functional/no-loop-statements": "warn",
       "functional/no-throw-statements": "off",
+      "functional/no-expression-statements": "off",
+      "functional/functional-parameters": "off",
+      "functional/no-return-void": "off",
+      "functional/no-conditional-statements": "off",
 
-      // Relax JSDoc requirements for demo code
+      // SonarJSセキュリティルールを緩和
+      "sonarjs/cors": "off",
+      "sonarjs/x-powered-by": "off",
+      "sonarjs/deprecation": "warn", // デモコードでの非推奨API使用を許可
+      "sonarjs/slow-regex": "off", // デモコードのregexは許可
+
+      // JSDoc要件を緩和
       "jsdoc/require-description": "off",
       "jsdoc/require-param-description": "off",
-      "jsdoc/require-param-type": "off",
-      "jsdoc/require-returns": "off",
       "jsdoc/require-returns-description": "off",
-      "jsdoc/require-returns-type": "off",
+      "jsdoc/require-jsdoc": "off",
 
-      // Allow PascalCase for React component imports
+      // React component importでPascalCaseを許可
       "@typescript-eslint/naming-convention": "off",
 
-      // Relax TypeScript strict rules for demo code
+      // TypeScript厳格ルールを警告に緩和
       "@typescript-eslint/explicit-function-return-type": "warn",
       "@typescript-eslint/explicit-module-boundary-types": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
@@ -280,40 +237,90 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/prefer-nullish-coalescing": "warn",
 
-      // Relax other strict rules
+      // その他の厳格ルールを緩和
       "unicorn/no-null": "warn",
       "unused-imports/no-unused-vars": "warn",
 
-      // Allow spread on Data.Class (Effect-TS pattern)
+      // Effect-TSパターンを許可
       "@typescript-eslint/no-misused-spread": "off",
       "@typescript-eslint/no-unnecessary-condition": "warn",
     },
   },
 
-  // テストファイル用設定
+  // ============================================
+  // Effect-TS クライアントパッケージ用設定
+  // ============================================
   {
-    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+    files: ["packages/toggl-client/**/*", "packages/notion-client/**/*"],
+    rules: {
+      // 外部API (Notion/Toggl) のsnake_caseプロパティを許可
+      "@typescript-eslint/naming-convention": "off",
+
+      // Effect.genパターンでパラメータなし関数を許可
+      "functional/functional-parameters": "off",
+
+      // Data.Classのspreadパターンを許可
+      "@typescript-eslint/no-misused-spread": "off",
+
+      // 外部APIでnullが必要な場合を許可
+      "unicorn/no-null": "warn",
+
+      // JSDocパラメータ説明を緩和
+      "jsdoc/require-param-description": "off",
+
+      // Unicorn strictルールを緩和
+      "unicorn/switch-case-braces": "off",
+      "unicorn/no-array-callback-reference": "off",
+      "unicorn/no-negated-condition": "off",
+
+      // Functional programming ルールを緩和
+      "functional/no-loop-statements": "warn", // 外部APIレスポンス処理でループが必要な場合あり
+      "functional/no-expression-statements": "warn", // Domain errorsでthrowが必要
+
+      // SonarJS strictルールを緩和
+      "sonarjs/no-nested-functions": "off",
+      "sonarjs/no-nested-template-literals": "off",
+      "sonarjs/slow-regex": "off", // Domain validation regexは許可
+      "sonarjs/different-types-comparison": "warn",
+      "sonarjs/deprecation": "warn",
+      "sonarjs/no-unused-vars": "off", // TypeScriptのno-unused-varsを使用
+
+      // テンプレートリテラルでnumber型を許可
+      "@typescript-eslint/restrict-template-expressions": "warn",
+
+      // 条件式の型チェックを緩和
+      "@typescript-eslint/no-unnecessary-condition": "warn",
+
+      // 未使用変数を警告に（APIレスポンスの分割代入で使わない値がある場合）
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
+  },
+
+  // ============================================
+  // テストファイル用設定
+  // ============================================
+  {
+    files: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
     plugins: {
       vitest: vitestPlugin,
     },
     rules: {
       ...vitestPlugin.configs.recommended.rules,
-      "vitest/expect-expect": "error",
-      "vitest/no-disabled-tests": "warn",
-      "vitest/no-focused-tests": "error",
-      "vitest/no-identical-title": "error",
-      "vitest/prefer-to-be": "error",
-      "vitest/prefer-to-have-length": "error",
-      "vitest/valid-expect": "error",
-
-      // テストファイルではJSDoc不要
+      // JSDoc不要
       "jsdoc/require-description": "off",
-      "jsdoc/require-param": "off",
-      "jsdoc/require-returns": "off",
+      "jsdoc/require-param-description": "off",
+      "jsdoc/require-returns-description": "off",
+      // 関数型プログラミングルールを緩和（テストでは副作用が必要）
+      "functional/no-expression-statements": "off",
+      "functional/functional-parameters": "off",
+      "functional/no-return-void": "off",
+      "functional/no-conditional-statements": "off",
     },
   },
 
-  // 設定ファイルは除外
+  // ============================================
+  // 除外設定
+  // ============================================
   {
     ignores: [
       "**/node_modules/**",
