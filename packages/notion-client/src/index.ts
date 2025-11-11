@@ -12,5 +12,5 @@ export * from "./domain/errors";
 export * from "./application/ports";
 
 // Infrastructure
-// export * from "./infrastructure/adapters";
-// export * from "./infrastructure/http";
+export * from "./infrastructure/adapters";
+export * from "./infrastructure/http";
